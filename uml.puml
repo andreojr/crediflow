@@ -1,0 +1,37 @@
+@startuml GerenciamenteDeCartaoDeCredito
+    Cliente - Cartao
+    TipoCliente - Cliente
+    Cliente -- PerfilDeConsumo
+
+    enum PerfilDeConsumo {
+        SIMPLES
+        VIP
+    }
+
+    enum TipoCliente {
+        FISICO
+        JURIDICO
+    }
+
+    class Cliente {
+        String nome
+        Cartao[] Cartões
+        TipoCliente tipoCliente
+        PefilDeConsumo perfilDeConsumo
+        adicionarCartao(Cartao cartao)
+        comprar(Cartao cartao)
+        gerarRelatorioDeTransacoes()
+    }
+
+    class Cartao {
+        Cliente cliente
+        double saldo
+        double limite
+
+        gerarFatura()
+        realizarCompra()
+        verificarSaldo()
+        verificarLimite()
+        verHistoricoDeCompras()
+    }
+@enduml
