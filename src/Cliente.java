@@ -58,9 +58,9 @@ public class Cliente {
     public void gerarFatura() {
         double saldoTotal = 0;
         for (Cartao c : cartoes) {
-            saldoTotal += c.getSaldo();
+            saldoTotal += c.verificarSaldo();
         }
 
-        Toast.erro(String.format("Fatura total: %s", nf.format(saldoTotal)));
+        Toast.erro(String.format("Total a pagar: %s", nf.format(Math.abs(saldoTotal))));
     }
 }

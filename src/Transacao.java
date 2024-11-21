@@ -25,7 +25,7 @@ public class Transacao {
     }
 
     public String getValor() {
-        return nf.format(valor);
+        return nf.format(Math.abs(valor));
     }
 
     public TipoTransacao getTipo() {
