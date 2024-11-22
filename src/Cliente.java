@@ -1,4 +1,5 @@
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -105,6 +106,15 @@ public class Cliente {
         cartaoAtual.realizarTransacao("Pagamento de fatura", valor, TipoTransacao.PAGAMENTO);
     }
 
+    public void realizarTransacao(String descricao, double valor, LocalDateTime when) {
+        if (cartaoAtual == null) {
+            Toast.erro("Nenhum cartao selecionado");
+            return;
+        }
+        if (cartaoAtual.validarCompra(valor))
+           cartaoAtual.realizarTransacao(descricao, valor, TipoTransacao.COMPRA, when);;
+    }
+
     public void realizarTransacao(String descricao, double valor) {
         if (cartaoAtual == null) {
             Toast.erro("Nenhum cartao selecionado");
@@ -152,17 +162,13 @@ public class Cliente {
         return true;
     }
 
-    public void aplicarCashback() {
+    public void aplicarCashback(double valor) {
         if (cartaoAtual == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
-        if (cartaoAtual.getTransacaoAtiva() == null) {
-            Toast.erro("Nenhuma transacao ativa para aplicaçao de CASHBACK");
-            return;
-        }
-        if (cartaoAtual.validarCompra(cartaoAtual.getTransacaoAtiva().getValorNumerico()) && validarCashback())
-            cartaoAtual.realizarTransacao("Cashback", cartaoAtual.getTransacaoAtiva().getValorNumerico()*cartaoAtual.getTaxaCashback(), TipoTransacao.CASHBACK);
+        if (validarCashback())
+            cartaoAtual.realizarTransacao("Cashback", valor*cartaoAtual.getTaxaCashback(), TipoTransacao.CASHBACK);
     }
 
     public void gerarRelatorioDeTransacoes() {

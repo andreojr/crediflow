@@ -1,5 +1,7 @@
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Locale;
 import java.util.Random;
 
@@ -64,7 +66,7 @@ public class Cartao {
         return true;
     }
 
-    public void realizarTransacao(String descricao, double valor, TipoTransacao tipo) {
+    public void realizarTransacao(String descricao, double valor, TipoTransacao tipo, LocalDateTime when) {
         if (bloqueado) {
             Toast.erro(String.format("Nao foi possivel criar transaçao: cartao com final %s bloqueado", getFinal()));
             return;
@@ -75,7 +77,11 @@ public class Cartao {
             Toast.erro("Transação em andamento");
             return;
         }
-        transacaoAtiva = new Transacao(valor, descricao, this, tipo);
+        transacaoAtiva = new Transacao(valor, descricao, this, tipo, when);
+    }
+
+    public void realizarTransacao(String descricao, double valor, TipoTransacao tipo) {
+        realizarTransacao(descricao, valor, tipo, LocalDateTime.now());
     }
 
     public void concluirTransacao() {
@@ -106,15 +112,39 @@ public class Cartao {
     }
 
     public void gerarExtrato() {
-        for (Transacao transacao : this.transacoes) {
-            char simbolo = '+';
-            String color = Toast.verde();
-            if (TipoTransacao.COMPRA == transacao.getTipo()) {
-                simbolo = '-';
-                color = Toast.vermelho();
+        Toast.aviso(String.format("EXTRATO (%s)", getFinal()));
+        // Ordenar a partir das transacoes mais recentes
+        transacoes.sort(Comparator.comparing(Transacao::getCriadoEm).reversed());
+        for (Transacao transacao : transacoes) {
+            transacao.exibir();
+        }
+    }
+
+    public void gerarExtrato(LocalDateTime inicio, LocalDateTime fim) {
+        Toast.aviso(String.format("EXTRATO (%s) - PERÍODO: %s até %s", getFinal(), inicio, fim));
+    
+        // Ordenar as transações por ordem decrescente (mais recentes primeiro)
+        transacoes.sort(Comparator.comparing(Transacao::getCriadoEm).reversed());
+    
+        // Filtrar e exibir as transações no intervalo fornecido
+        for (Transacao transacao : transacoes) {
+            if (transacao.getLocalDateTime().isAfter(inicio) && transacao.getLocalDateTime().isBefore(fim)) {
+                transacao.exibir();
             }
-            
-            System.out.println(String.format("%s | %s | %s", String.format("%s%s %s%s", color, simbolo, transacao.getValor(), Toast.reset()), transacao.getDescricao(), transacao.getCriadoEm()));
+        }
+    }
+
+    public void gerarExtrato(TipoTransacao tipo) {
+        Toast.aviso(String.format("EXTRATO (%s) - TIPO: %s", getFinal(), tipo.name()));
+    
+        // Ordenar as transações por ordem decrescente (mais recentes primeiro)
+        transacoes.sort(Comparator.comparing(Transacao::getCriadoEm).reversed());
+    
+        // Filtrar e exibir as transações por tipo fornecido
+        for (Transacao transacao : transacoes) {
+            if (transacao.getTipo() == tipo) {
+                transacao.exibir();
+            }
         }
     }
 }
