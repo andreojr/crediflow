@@ -5,9 +5,8 @@ import java.util.Locale;
 
 public class Cliente {
     private String nome;
-    private ArrayList<Cartao> cartoes;
+    private Cartao cartao;
     private TipoCliente tipo;
-    private Cartao cartaoAtual;
     private PerfilDeConsumo perfil;
     NumberFormat nf = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
@@ -15,7 +14,6 @@ public class Cliente {
         this.nome = nome;
         this.tipo = tipo;
         this.perfil = perfil;
-        this.cartoes = new ArrayList<Cartao>();
 
         Toast.sucesso(String.format("Cliente %s criado com sucesso", nome));
     }
@@ -32,37 +30,17 @@ public class Cliente {
         return this.perfil;
     }
 
-    public Cartao getCartaoAtual() {
-        return this.cartaoAtual;
-    }
-
-    public void adicionarCartao(Cartao cartao) {
+    public void setCartao(Cartao cartao) {
         if (cartao.hasCashback() && perfil == PerfilDeConsumo.SIMPLES) {
             Toast.erro("Nao foi possivel vincular cartao: cliente simples nao possui acesso ao beneficio de cashback");
             return;
         }
-        this.cartoes.add(cartao);
+        this.cartao = cartao;
         Toast.sucesso(String.format("Cartao com final %s vinculado a %s", cartao.getFinal(), nome));
-    }
-
-    public void selecionarCartao(Cartao cartao) {
-        for (Cartao c : cartoes) {
-            if (c.getNumero().equals(cartao.getNumero())) {
-                if (c.isBloqueado()) {
-                    Toast.erro(String.format("Cartao de final %s bloqueado", cartao.getFinal()));
-                    return;
-                }
-                this.cartaoAtual = c;
-                Toast.sucesso(String.format("Cartao de final %s selecionado por %s", cartao.getFinal(), nome));
-                return;
-            }
-        }
-
-        Toast.erro("Cartao nao vinculado a este cliente");
     }
     
     public void transferirCartao(Cliente cliente) {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
@@ -70,28 +48,26 @@ public class Cliente {
             Toast.erro("Apenas membros de empresa podem transferir cartoes");
             return;
         }
-        cartoes.remove(cartaoAtual);
-        Toast.erro(String.format("Cartao de final %s desvinculado de %s", cartaoAtual.getFinal(), nome));
-        cliente.adicionarCartao(cartaoAtual);
-        cartaoAtual = null;
+        Toast.erro(String.format("Cartao de final %s desvinculado de %s", cartao.getFinal(), nome));
+        cliente.setCartao(cartao);
+        cartao = null;
     }
 
     public void bloquearCartao() {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
-        cartaoAtual.bloquear();
+        cartao.bloquear();
     }
 
     public void excluirCartao() {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
-        cartoes.remove(cartaoAtual);
-        Toast.erro(String.format("Cartao com final %s excluido para %s", cartaoAtual.getFinal(), nome));
-        cartaoAtual = null;
+        Toast.erro(String.format("Cartao com final %s excluido para %s", cartao.getFinal(), nome));
+        cartao = null;
     }
 
     public boolean validarAcesso() {
@@ -99,53 +75,41 @@ public class Cliente {
     }
 
     public void realizarTransacao(double valor) {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
-        cartaoAtual.realizarTransacao("Pagamento de fatura", valor, TipoTransacao.PAGAMENTO);
+        cartao.realizarTransacao("Pagamento de fatura", valor, TipoTransacao.PAGAMENTO);
     }
 
     public void realizarTransacao(String descricao, double valor, LocalDateTime when) {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
-        if (cartaoAtual.validarCompra(valor))
-           cartaoAtual.realizarTransacao(descricao, valor, TipoTransacao.COMPRA, when);;
+        if (cartao.validarCompra(valor))
+            cartao.realizarTransacao(descricao, valor, TipoTransacao.COMPRA, when);
     }
 
     public void realizarTransacao(String descricao, double valor) {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
-        if (cartaoAtual.validarCompra(valor))
-           cartaoAtual.realizarTransacao(descricao, valor, TipoTransacao.COMPRA);;
+        if (cartao.validarCompra(valor))
+            cartao.realizarTransacao(descricao, valor, TipoTransacao.COMPRA);
     }
 
     public void concluirTransacao() {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
-        cartaoAtual.concluirTransacao();
-    }
-
-    public void removerCartao(String finalCartao) {
-        for (Cartao c : cartoes) {
-            if (c.getFinal().equals(finalCartao)) {
-                cartoes.remove(c);
-                Toast.erro(String.format("O cartao de final %s foi removido", finalCartao));
-                return;
-            }
-        }
-
-        Toast.erro("Cartao nao encontrado");
+        cartao.concluirTransacao();
     }
 
     private boolean validarCashback() {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return false;
         }
@@ -154,7 +118,7 @@ public class Cliente {
             return false;
         }
 
-        if (cartaoAtual.getTaxaCashback() <= 0 || cartaoAtual.getTaxaCashback() >= 1) {
+        if (cartao.getTaxaCashback() <= 0 || cartao.getTaxaCashback() >= 1) {
             Toast.erro("Taxa de cashback inválida");
             return false;
         }
@@ -163,28 +127,24 @@ public class Cliente {
     }
 
     public void aplicarCashback(double valor) {
-        if (cartaoAtual == null) {
+        if (cartao == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
         if (validarCashback())
-            cartaoAtual.realizarTransacao("Cashback", valor*cartaoAtual.getTaxaCashback(), TipoTransacao.CASHBACK);
+            cartao.realizarTransacao("Cashback", valor*cartao.getTaxaCashback(), TipoTransacao.CASHBACK);
     }
 
     public void gerarRelatorioDeTransacoes() {
-        Toast.aviso(String.format("RELATORIO DE TRANSACOES (%s)", this.nome));
-        for (Cartao c : cartoes) {
-            if (!c.isBloqueado())
-                c.gerarExtrato();
+        if (cartao == null) {
+            Toast.erro("Nenhum cartao selecionado");
+            return;
         }
+        Toast.aviso(String.format("RELATORIO DE TRANSACOES (%s)", this.nome));
+        cartao.gerarExtrato();
     }
 
     public void gerarFatura() {
-        double saldoTotal = 0;
-        for (Cartao c : cartoes) {
-            saldoTotal += c.verificarSaldo();
-        }
-
-        Toast.erro(String.format("Total a pagar: %s", nf.format(Math.abs(saldoTotal))));
+        Toast.erro(String.format("Total a pagar: %s", nf.format(Math.abs(cartao.verificarSaldo()))));
     }
 }
