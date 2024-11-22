@@ -45,15 +45,15 @@ public class Cliente {
         Toast.sucesso(String.format("Cartao com final %s vinculado a %s", cartao.getFinal(), nome));
     }
 
-    public void selecionarCartao(Cartao cartao) {
+    public void selecionarCartao(String finalCartao) {
         for (Cartao c : cartoes) {
-            if (c.getNumero().equals(cartao.getNumero())) {
+            if (c.getFinal().equals(finalCartao)) {
                 if (c.isBloqueado()) {
-                    Toast.erro(String.format("Cartao de final %s bloqueado", cartao.getFinal()));
+                    Toast.erro(String.format("Cartao de final %s bloqueado", c.getFinal()));
                     return;
                 }
                 this.cartaoAtual = c;
-                Toast.sucesso(String.format("Cartao de final %s selecionado por %s", cartao.getFinal(), nome));
+                Toast.sucesso(String.format("Cartao de final %s selecionado por %s", c.getFinal(), nome));
                 return;
             }
         }
@@ -130,18 +130,6 @@ public class Cliente {
             return;
         }
         cartaoAtual.concluirTransacao();
-    }
-
-    public void removerCartao(String finalCartao) {
-        for (Cartao c : cartoes) {
-            if (c.getFinal().equals(finalCartao)) {
-                cartoes.remove(c);
-                Toast.erro(String.format("O cartao de final %s foi removido", finalCartao));
-                return;
-            }
-        }
-
-        Toast.erro("Cartao nao encontrado");
     }
 
     private boolean validarCashback() {
