@@ -5,63 +5,54 @@ import java.util.Random;
 
 public class Cartao {
     private String numero;
-    private Cliente cliente;
     private double limite;
     private double taxaCashback;
+    private boolean bloqueado;
+    private Transacao transacaoAtiva;
     private ArrayList<Transacao> transacoes;
     NumberFormat nf = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
-    public Cartao(Cliente cliente) {
+    public Cartao(double limitePersonalizado, double taxaCashback) {
         this.numero = gerarNumero();
-        this.cliente = cliente;
         this.transacoes = new ArrayList<Transacao>();
-        switch (this.cliente.getTipo()) {
-            case TipoCliente.FISICO:
-                if (this.cliente.getPerfil() == PerfilDeConsumo.VIP) {
-                    this.limite = 5000;
-                } else {
-                    this.limite = 1000;
-                }
-                break;
-            case TipoCliente.JURIDICO:
-                if (this.cliente.getPerfil() == PerfilDeConsumo.VIP) {
-                    this.limite = 10000;
-                } else {
-                    this.limite = 5000;
-                }
-                break;
-            default:
-                break;
-        }
-        cliente.adicionarCartao(this);
-
-        Toast.sucesso(String.format("Cartao com final %s criado com sucesso para %s", numero.substring(numero.length() - 4), cliente.getNome()));
+        this.limite = limitePersonalizado;
+        this.taxaCashback = taxaCashback > .5 ? .5 : taxaCashback;
     }
 
-    public Cartao(Cliente cliente, double limitePersonalizado, double taxaCashback) {
-        this(cliente);
-        if (cliente.getPerfil() == PerfilDeConsumo.VIP) {
-            this.limite = limitePersonalizado;
-            this.taxaCashback = taxaCashback;
-        }
+    public String getFinal() {
+        return this.numero.substring(this.numero.length() - 4);
     }
 
     public String getNumero() {
-        return this.numero;
+        return numero;
+    }
+
+    public double getTaxaCashback() {
+        return taxaCashback;
+    }
+
+    public boolean hasCashback() {
+        return taxaCashback > 0;
+    }
+
+    public boolean isBloqueado() {
+        return bloqueado;
     }
 
     public double getLimite() {
-        return this.limite;
+        return limite;
     }
 
-    public String gerarNumero() {
+    public Transacao getTransacaoAtiva() {
+        return transacaoAtiva;
+    }
+
+    private String gerarNumero() {
         Random random = new Random();
         StringBuilder numero = new StringBuilder();
-
         for (int i = 0; i < 16; i++) {
             numero.append(random.nextInt(10));
         }
-
         return numero.toString();
     }
     
@@ -69,44 +60,37 @@ public class Cartao {
         if (verificarSaldo() + valor > verificarLimiteDisponivel()) {
             Toast.erro("Compra não realizada: saldo insuficiente");
             return false;
-        } 
-        Toast.sucesso("Compra realizada com sucesso");
+        }
         return true;
     }
 
-    public boolean validarAcesso() {
-        return cliente.getPerfil() == PerfilDeConsumo.VIP;
-    }
-
-    public void realizarCompra(String descricao, double valor) {
-        if (validarCompra(valor))
-            this.transacoes.add(new Transacao(valor*-1, descricao, this, TipoTransacao.COMPRA));
-    }
-
-    public void realizarCompra(String descricao, double valor, boolean cashback) {
-        realizarCompra(descricao, valor);
-        if (cashback)
-            aplicarCachback(valor);
-    }
-
-
-    private boolean validarCashback() {
-        if (!validarAcesso()) {
-            Toast.erro("Acesso negado: apenas clientes VIP tem direito a cashback");
-            return false;
+    public void realizarTransacao(String descricao, double valor, TipoTransacao tipo) {
+        if (bloqueado) {
+            Toast.erro(String.format("Nao foi possivel criar transaçao: cartao com final %s bloqueado", getFinal()));
+            return;
         }
-
-        if (taxaCashback <= 0 || taxaCashback >= 1) {
-            Toast.erro("Taxa de cashback inválida");
-            return false;
+        if (valor == 0)
+            return;
+        if (transacaoAtiva != null) {
+            Toast.erro("Transação em andamento");
+            return;
         }
-
-        return true;
+        transacaoAtiva = new Transacao(valor, descricao, this, tipo);
     }
 
-    private void aplicarCachback(double valor) {
-        if (validarCompra(valor) && validarCashback())
-            this.transacoes.add(new Transacao(valor*taxaCashback, "Cashback", this, TipoTransacao.CASHBACK));
+    public void concluirTransacao() {
+        if (this.transacaoAtiva != null) {
+            Toast.sucesso(String.format("%s realizada com sucesso", transacaoAtiva.getTipo().name()));
+            this.transacaoAtiva.concluirTransacao();
+            this.transacoes.add(this.transacaoAtiva);
+            this.transacaoAtiva = null;
+        }
+    }
+
+    public void bloquear() {
+        this.bloqueado = true;
+        this.transacaoAtiva = null;
+        Toast.aviso(String.format("O cartao com final %s foi bloqueado", getFinal()));
     }
 
     public double verificarLimiteDisponivel() {
