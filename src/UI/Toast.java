@@ -1,3 +1,5 @@
+package UI;
+
 public class Toast {
     public static String vermelho() {
         return "\u001B[31m";

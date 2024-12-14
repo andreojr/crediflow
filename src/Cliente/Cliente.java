@@ -1,20 +1,25 @@
+package Cliente;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Locale;
+
+import Cartao.Cartao;
+import Cartao.CartaoBasico;
+import Cartao.CartaoEmpresarial;
+import Transacao.TipoTransacao;
+import UI.Toast;
 
 public class Cliente {
     private String nome;
     private ArrayList<Cartao> cartoes;
     private TipoCliente tipo;
     private Cartao cartaoAtual;
-    private PerfilDeConsumo perfil;
     NumberFormat nf = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
-    public Cliente(String nome, TipoCliente tipo, PerfilDeConsumo perfil) {
+    public Cliente(String nome, TipoCliente tipo) {
         this.nome = nome;
         this.tipo = tipo;
-        this.perfil = perfil;
         this.cartoes = new ArrayList<Cartao>();
 
         Toast.sucesso(String.format("Cliente %s criado com sucesso", nome));
@@ -28,17 +33,17 @@ public class Cliente {
         return this.tipo;
     }
 
-    public PerfilDeConsumo getPerfil() {
-        return this.perfil;
-    }
-
     public Cartao getCartaoAtual() {
         return this.cartaoAtual;
     }
 
     public void adicionarCartao(Cartao cartao) {
-        if (cartao.hasCashback() && perfil == PerfilDeConsumo.SIMPLES) {
-            Toast.erro("Nao foi possivel vincular cartao: cliente simples nao possui acesso ao beneficio de cashback");
+        if (tipo == TipoCliente.FISICO && cartao instanceof CartaoEmpresarial) {
+            Toast.erro("Somente clientes jurídicos podem ter um cartão empresarial");
+            return;
+        }
+        if (tipo == TipoCliente.JURIDICO && cartao instanceof CartaoBasico) {
+            Toast.erro("Somente clientes pessoa física podem ter um cartão básico");
             return;
         }
         this.cartoes.add(cartao);
@@ -94,69 +99,30 @@ public class Cliente {
         cartaoAtual = null;
     }
 
-    public boolean validarAcesso() {
-        return perfil == PerfilDeConsumo.VIP;
-    }
-
-    public void realizarTransacao(double valor) {
+    public void realizarCompra(double valor) {
         if (cartaoAtual == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
-        cartaoAtual.realizarTransacao("Pagamento de fatura", valor, TipoTransacao.PAGAMENTO);
+        cartaoAtual.realizarCompra("Pagamento de fatura", valor, TipoTransacao.PAGAMENTO, LocalDateTime.now());
     }
 
-    public void realizarTransacao(String descricao, double valor, LocalDateTime when) {
+    public void realizarCompra(String descricao, double valor, LocalDateTime when) {
         if (cartaoAtual == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
         if (cartaoAtual.validarCompra(valor))
-           cartaoAtual.realizarTransacao(descricao, valor, TipoTransacao.COMPRA, when);;
+           cartaoAtual.realizarCompra(descricao, valor, TipoTransacao.COMPRA, when);;
     }
 
-    public void realizarTransacao(String descricao, double valor) {
+    public void realizarCompra(String descricao, double valor) {
         if (cartaoAtual == null) {
             Toast.erro("Nenhum cartao selecionado");
             return;
         }
         if (cartaoAtual.validarCompra(valor))
-           cartaoAtual.realizarTransacao(descricao, valor, TipoTransacao.COMPRA);;
-    }
-
-    public void concluirTransacao() {
-        if (cartaoAtual == null) {
-            Toast.erro("Nenhum cartao selecionado");
-            return;
-        }
-        cartaoAtual.concluirTransacao();
-    }
-
-    private boolean validarCashback() {
-        if (cartaoAtual == null) {
-            Toast.erro("Nenhum cartao selecionado");
-            return false;
-        }
-        if (!validarAcesso()) {
-            Toast.erro("Acesso negado: apenas clientes VIP tem direito a cashback");
-            return false;
-        }
-
-        if (cartaoAtual.getTaxaCashback() <= 0 || cartaoAtual.getTaxaCashback() >= 1) {
-            Toast.erro("Taxa de cashback inválida");
-            return false;
-        }
-
-        return true;
-    }
-
-    public void aplicarCashback(double valor) {
-        if (cartaoAtual == null) {
-            Toast.erro("Nenhum cartao selecionado");
-            return;
-        }
-        if (validarCashback())
-            cartaoAtual.realizarTransacao("Cashback", valor*cartaoAtual.getTaxaCashback(), TipoTransacao.CASHBACK);
+           cartaoAtual.realizarCompra(descricao, valor, TipoTransacao.COMPRA, LocalDateTime.now());;
     }
 
     public void gerarRelatorioDeTransacoes() {

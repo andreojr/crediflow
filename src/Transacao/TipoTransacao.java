@@ -1,3 +1,4 @@
+package Transacao;
 public enum TipoTransacao {
     COMPRA,
     CASHBACK,

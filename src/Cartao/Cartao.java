@@ -1,3 +1,4 @@
+package Cartao;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -5,20 +6,21 @@ import java.util.Comparator;
 import java.util.Locale;
 import java.util.Random;
 
-public class Cartao {
+import Transacao.TipoTransacao;
+import Transacao.Transacao;
+import UI.Toast;
+
+public abstract class Cartao {
     private String numero;
     private double limite;
-    private double taxaCashback;
     private boolean bloqueado;
-    private Transacao transacaoAtiva;
     private ArrayList<Transacao> transacoes;
     NumberFormat nf = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
-    public Cartao(double limitePersonalizado, double taxaCashback) {
+    public Cartao(double limitePersonalizado) {
         this.numero = gerarNumero();
         this.transacoes = new ArrayList<Transacao>();
         this.limite = limitePersonalizado;
-        this.taxaCashback = taxaCashback > .5 ? .5 : taxaCashback;
     }
 
     public String getFinal() {
@@ -29,14 +31,6 @@ public class Cartao {
         return numero;
     }
 
-    public double getTaxaCashback() {
-        return taxaCashback;
-    }
-
-    public boolean hasCashback() {
-        return taxaCashback > 0;
-    }
-
     public boolean isBloqueado() {
         return bloqueado;
     }
@@ -45,8 +39,8 @@ public class Cartao {
         return limite;
     }
 
-    public Transacao getTransacaoAtiva() {
-        return transacaoAtiva;
+    public void adicionarTransacao(Transacao transacao) {
+        transacoes.add(transacao);
     }
 
     private String gerarNumero() {
@@ -66,36 +60,18 @@ public class Cartao {
         return true;
     }
 
-    public void realizarTransacao(String descricao, double valor, TipoTransacao tipo, LocalDateTime when) {
+    public void realizarCompra(String descricao, double valor, TipoTransacao tipo, LocalDateTime when) {
         if (bloqueado) {
             Toast.erro(String.format("Nao foi possivel criar transaçao: cartao com final %s bloqueado", getFinal()));
             return;
         }
         if (valor == 0)
             return;
-        if (transacaoAtiva != null) {
-            Toast.erro("Transação em andamento");
-            return;
-        }
-        transacaoAtiva = new Transacao(valor, descricao, this, tipo, when);
-    }
-
-    public void realizarTransacao(String descricao, double valor, TipoTransacao tipo) {
-        realizarTransacao(descricao, valor, tipo, LocalDateTime.now());
-    }
-
-    public void concluirTransacao() {
-        if (this.transacaoAtiva != null) {
-            Toast.sucesso(String.format("%s realizada com sucesso", transacaoAtiva.getTipo().name()));
-            this.transacaoAtiva.concluirTransacao();
-            this.transacoes.add(this.transacaoAtiva);
-            this.transacaoAtiva = null;
-        }
+        adicionarTransacao(new Transacao(valor, descricao, this, tipo, when));
     }
 
     public void bloquear() {
         this.bloqueado = true;
-        this.transacaoAtiva = null;
         Toast.aviso(String.format("O cartao com final %s foi bloqueado", getFinal()));
     }
 
